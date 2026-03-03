@@ -10,6 +10,7 @@ import {
   setSessionSpeakers,
   getCachedAnalysis,
   setSessionResult,
+  clearSessionResult,
 } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -43,6 +44,8 @@ export function TranscriptUploader() {
     const hash = hashTranscript(trimmed)
     const cached = getCachedAnalysis(hash)
 
+    // Clear stale result before loading new transcript
+    clearSessionResult()
     setSessionTranscript(trimmed)
     setSessionTurns(turns)
 

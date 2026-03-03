@@ -7,9 +7,11 @@ type Props = {
   speaker: Speaker
   onNameChange: (id: string, name: string) => void
   onSelectPrimary: (id: string) => void
+  onRemove: (id: string) => void
+  canRemove: boolean
 }
 
-export function SpeakerRow({ speaker, onNameChange, onSelectPrimary }: Props) {
+export function SpeakerRow({ speaker, onNameChange, onSelectPrimary, onRemove, canRemove }: Props) {
   return (
     <div
       className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
@@ -36,6 +38,15 @@ export function SpeakerRow({ speaker, onNameChange, onSelectPrimary }: Props) {
       </div>
       {speaker.is_primary_user && (
         <span className="text-xs text-neutral-500 shrink-0">This is me</span>
+      )}
+      {canRemove && (
+        <button
+          onClick={() => onRemove(speaker.speaker_id)}
+          className="text-neutral-300 hover:text-neutral-600 shrink-0 transition-colors text-lg leading-none"
+          aria-label={`Remove ${speaker.display_name}`}
+        >
+          ×
+        </button>
       )}
     </div>
   )

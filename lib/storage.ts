@@ -55,6 +55,10 @@ export function getSessionResult(): AnalysisResult | null {
   return raw ? JSON.parse(raw) : null
 }
 
+export function clearSessionResult() {
+  sessionStorage.removeItem(KEYS.RESULT)
+}
+
 // ── Cache (persisted analysis results) ──────────────────────────────────────
 
 export function getCachedAnalysis(hash: string): CachedAnalysis | null {

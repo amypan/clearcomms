@@ -39,6 +39,10 @@ export default function AssignPage() {
     )
   }
 
+  function handleRemove(id: string) {
+    setSpeakers((prev) => prev.filter((s) => s.speaker_id !== id))
+  }
+
   function handleContinue() {
     setSessionSpeakers(speakers)
     router.push('/results')
@@ -74,6 +78,8 @@ export default function AssignPage() {
               speaker={speaker}
               onNameChange={handleNameChange}
               onSelectPrimary={handleSelectPrimary}
+              onRemove={handleRemove}
+              canRemove={speakers.length > 1}
             />
           ))}
         </div>
