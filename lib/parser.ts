@@ -6,6 +6,20 @@ const TIMESTAMP_PATTERN = /^\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s+(.+?):\s+(.+)$/
 // Matches: Speaker Name: text (no timestamp)
 const NO_TIMESTAMP_PATTERN = /^(.+?):\s+(.+)$/
 
+// Metadata labels that should not be treated as speakers
+const METADATA_LABELS = new Set([
+  'meeting title', 'title', 'date', 'time', 'duration',
+  'transcript', 'attendees', 'participants', 'location',
+  'organizer', 'host', 'subject', 'topic', 'agenda',
+  'summary', 'notes', 'recording', 'description',
+  'start time', 'end time', 'start date', 'end date',
+  'created', 'created by', 'edited by', 'last edited',
+])
+
+function isMetadataLabel(label: string): boolean {
+  return METADATA_LABELS.has(label.toLowerCase().trim())
+}
+
 export type ParseResult = {
   turns: TranscriptTurn[]
   speakers: Speaker[]
@@ -24,6 +38,7 @@ export function parseTranscript(raw: string): ParseResult {
     const timestamped = line.match(TIMESTAMP_PATTERN)
     if (timestamped) {
       const [, timestamp, rawSpeaker, text] = timestamped
+      if (isMetadataLabel(rawSpeaker)) continue
       const speaker = ensureSpeaker(speakerMap, rawSpeaker.trim())
       turns.push({
         turn_id: `t${turns.length + 1}`,
@@ -37,6 +52,7 @@ export function parseTranscript(raw: string): ParseResult {
     const plain = line.match(NO_TIMESTAMP_PATTERN)
     if (plain) {
       const [, rawSpeaker, text] = plain
+      if (isMetadataLabel(rawSpeaker)) continue
       const speaker = ensureSpeaker(speakerMap, rawSpeaker.trim())
       turns.push({
         turn_id: `t${turns.length + 1}`,
