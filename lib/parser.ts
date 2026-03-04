@@ -69,16 +69,23 @@ export function parseTranscript(raw: string): ParseResult {
   }
 }
 
+const SELF_LABELS = new Set(['me', 'i', 'myself', 'self'])
+
+function isSelfLabel(label: string): boolean {
+  return SELF_LABELS.has(label.toLowerCase().trim())
+}
+
 function ensureSpeaker(
   map: Map<string, Speaker>,
   rawLabel: string
 ): Speaker {
   const id = toSpeakerId(rawLabel)
   if (!map.has(id)) {
+    const alreadyHasPrimary = Array.from(map.values()).some((s) => s.is_primary_user)
     map.set(id, {
       speaker_id: id,
       display_name: rawLabel,
-      is_primary_user: false,
+      is_primary_user: !alreadyHasPrimary && isSelfLabel(rawLabel),
     })
   }
   return map.get(id)!
