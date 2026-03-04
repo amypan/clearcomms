@@ -5,12 +5,14 @@ import type {
   TranscriptTurn,
   AnalysisResult,
 } from './types'
+import type { ConversationType } from './conversation-types'
 
 const KEYS = {
   RAW_TRANSCRIPT: 'cc_raw_transcript',
   TURNS: 'cc_turns',
   SPEAKERS: 'cc_speakers',
   RESULT: 'cc_result',
+  CONVERSATION_TYPE: 'cc_conversation_type',
   CACHE_PREFIX: 'cc_cache_',
   PROGRESS: 'cc_progress',
 } as const
@@ -59,10 +61,34 @@ export function clearSessionResult() {
   sessionStorage.removeItem(KEYS.RESULT)
 }
 
+export function setSessionConversationType(type: ConversationType) {
+  sessionStorage.setItem(KEYS.CONVERSATION_TYPE, type)
+}
+
+export function getSessionConversationType(): ConversationType | null {
+  return sessionStorage.getItem(KEYS.CONVERSATION_TYPE) as ConversationType | null
+}
+
+export function clearSessionConversationType() {
+  sessionStorage.removeItem(KEYS.CONVERSATION_TYPE)
+}
+
 // ── Cache (persisted analysis results) ──────────────────────────────────────
 
-export function getCachedAnalysis(hash: string): CachedAnalysis | null {
-  const raw = localStorage.getItem(KEYS.CACHE_PREFIX + hash)
+function hashTranscriptText(text: string): string {
+  let hash = 0
+  for (let i = 0; i < text.length; i++) {
+    hash = (Math.imul(31, hash) + text.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash).toString(36)
+}
+
+export function buildCacheKey(rawTranscript: string, conversationType: ConversationType): string {
+  return `${hashTranscriptText(rawTranscript)}_${conversationType}`
+}
+
+export function getCachedAnalysis(key: string): CachedAnalysis | null {
+  const raw = localStorage.getItem(KEYS.CACHE_PREFIX + key)
   return raw ? JSON.parse(raw) : null
 }
 
@@ -104,14 +130,4 @@ export function addProgressRecord(record: ProgressRecord) {
   records.unshift(record)
   if (records.length > MAX_PROGRESS) records.splice(MAX_PROGRESS)
   localStorage.setItem(KEYS.PROGRESS, JSON.stringify(records))
-}
-
-// ── Hash ─────────────────────────────────────────────────────────────────────
-
-export function hashTranscript(text: string): string {
-  let hash = 0
-  for (let i = 0; i < text.length; i++) {
-    hash = (Math.imul(31, hash) + text.charCodeAt(i)) | 0
-  }
-  return Math.abs(hash).toString(36)
 }

@@ -6,6 +6,7 @@ import {
   getSessionTurns,
   getSessionSpeakers,
   setSessionSpeakers,
+  clearSessionConversationType,
 } from '@/lib/storage'
 import { SpeakerRow } from '@/components/assign/SpeakerRow'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ export default function AssignPage() {
       router.replace('/')
       return
     }
+    clearSessionConversationType()
     setSpeakers(s)
     setReady(true)
   }, [router])
@@ -45,7 +47,7 @@ export default function AssignPage() {
 
   function handleContinue() {
     setSessionSpeakers(speakers)
-    router.push('/results')
+    router.push('/classify')
   }
 
   const hasPrimary = speakers.some((s) => s.is_primary_user)
