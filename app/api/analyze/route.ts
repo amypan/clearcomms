@@ -1,21 +1,35 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-import { SYSTEM_PROMPT, buildUserPrompt } from '@/lib/prompts'
+import { buildSystemPrompt, buildUserPrompt } from '@/lib/prompts'
 import type { Speaker, TranscriptTurn, AnalysisResult } from '@/lib/types'
+import type { ConversationType } from '@/lib/conversation-types'
 
 const client = new Anthropic()
+
+const VALID_TYPES: ConversationType[] = [
+  'decision_meeting', 'status_update', 'brainstorm', 'presentation',
+  'interview_qa', '1on1', 'customer_call', 'other',
+]
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { turns, speakers } = body as {
+    const { turns, speakers, conversation_type } = body as {
       turns: TranscriptTurn[]
       speakers: Speaker[]
+      conversation_type: ConversationType
     }
 
     if (!turns?.length || !speakers?.length) {
       return NextResponse.json(
         { error: 'Missing turns or speakers' },
+        { status: 400 }
+      )
+    }
+
+    if (!conversation_type || !VALID_TYPES.includes(conversation_type)) {
+      return NextResponse.json(
+        { error: 'Missing or invalid conversation_type' },
         { status: 400 }
       )
     }
@@ -28,12 +42,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const systemPrompt = buildSystemPrompt(conversation_type)
     const userPrompt = buildUserPrompt(turns, speakers)
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     })
 

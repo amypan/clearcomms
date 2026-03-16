@@ -4,12 +4,10 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { parseTranscript } from '@/lib/parser'
 import {
-  hashTranscript,
   setSessionTranscript,
   setSessionTurns,
   setSessionSpeakers,
-  getCachedAnalysis,
-  setSessionResult,
+  clearSessionResult,
 } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -40,21 +38,11 @@ export function TranscriptUploader() {
       return
     }
 
-    const hash = hashTranscript(trimmed)
-    const cached = getCachedAnalysis(hash)
-
+    clearSessionResult()
     setSessionTranscript(trimmed)
     setSessionTurns(turns)
-
-    if (cached) {
-      // Use cached speakers + result, skip re-analysis
-      setSessionSpeakers(cached.speakers)
-      setSessionResult(cached.result)
-      router.push('/results?cached=1')
-    } else {
-      setSessionSpeakers(speakers)
-      router.push('/assign')
-    }
+    setSessionSpeakers(speakers)
+    router.push('/assign')
   }
 
   function handleFile(file: File) {

@@ -1,3 +1,5 @@
+export type { ConversationType, DimensionConfig, ConversationTypeConfig } from './conversation-types'
+
 export type Speaker = {
   speaker_id: string
   display_name: string
@@ -39,12 +41,19 @@ export type AnalysisResult = {
   moments: Moment[]
 }
 
+export type ClassificationResult = {
+  conversation_type: import('./conversation-types').ConversationType
+  confidence: 'high' | 'medium' | 'low'
+  reasoning: string
+}
+
 export type CachedAnalysis = {
   hash: string
   timestamp: string
   speakers: Speaker[]
   turns: TranscriptTurn[]
   result: AnalysisResult
+  conversation_type?: import('./conversation-types').ConversationType
 }
 
 export type ProgressRecord = {
@@ -53,4 +62,5 @@ export type ProgressRecord = {
   speaker_name: string
   total_score: number
   dimension_scores: Record<string, number>
+  conversation_type?: import('./conversation-types').ConversationType
 }

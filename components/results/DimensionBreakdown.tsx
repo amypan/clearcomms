@@ -1,18 +1,19 @@
 import type { Dimension } from '@/lib/types'
+import type { ConversationType } from '@/lib/conversation-types'
+import { CONVERSATION_TYPE_CONFIGS } from '@/lib/conversation-types'
 
 type Props = {
   dimensions: Dimension[]
+  conversationType: ConversationType
   onViewMoments: (dimensionName: string) => void
 }
 
-const WEIGHTS: Record<string, string> = {
-  Responsiveness: '30%',
-  Structure: '25%',
-  Listening: '25%',
-  'Decision Drive': '20%',
-}
+export function DimensionBreakdown({ dimensions, conversationType, onViewMoments }: Props) {
+  const dimConfigs = CONVERSATION_TYPE_CONFIGS[conversationType].dimensions
+  const weightMap = Object.fromEntries(
+    dimConfigs.map((d) => [d.name, Math.round(d.weight * 100)])
+  )
 
-export function DimensionBreakdown({ dimensions, onViewMoments }: Props) {
   return (
     <div className="mb-10">
       <h2 className="text-sm font-medium text-neutral-500 uppercase tracking-wide mb-4">
@@ -24,10 +25,10 @@ export function DimensionBreakdown({ dimensions, onViewMoments }: Props) {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-neutral-900 text-sm">{d.name}</span>
-                <span className="text-xs text-neutral-400">{WEIGHTS[d.name]}</span>
+                <span className="text-xs text-neutral-400">{weightMap[d.name]}%</span>
               </div>
               <span className="text-lg font-semibold tabular-nums text-neutral-900">
-                {d.score}
+                {d.score} / 100
               </span>
             </div>
             {/* Score bar */}

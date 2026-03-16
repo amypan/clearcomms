@@ -9,15 +9,17 @@ import {
   setSessionResult,
   getCachedAnalysis,
   setCachedAnalysis,
-  hashTranscript,
+  buildCacheKey,
   getSessionTranscript,
   addProgressRecord,
+  getSessionConversationType,
 } from '@/lib/storage'
 import { ScoreHeader } from '@/components/results/ScoreHeader'
 import { DimensionBreakdown } from '@/components/results/DimensionBreakdown'
 import { MomentsList } from '@/components/results/MomentsList'
 import { TranscriptModal } from '@/components/results/TranscriptModal'
 import type { AnalysisResult, Speaker, TranscriptTurn } from '@/lib/types'
+import type { ConversationType } from '@/lib/conversation-types'
 
 type State =
   | { status: 'loading' }
@@ -27,6 +29,7 @@ type State =
       result: AnalysisResult
       speakers: Speaker[]
       turns: TranscriptTurn[]
+      conversationType: ConversationType
     }
 
 export default function ResultsPage() {
@@ -38,24 +41,36 @@ export default function ResultsPage() {
     const turns = getSessionTurns()
     const speakers = getSessionSpeakers()
     const rawTranscript = getSessionTranscript()
+    const conversationType = getSessionConversationType()
 
     if (!turns || !speakers || !rawTranscript) {
       router.replace('/')
       return
     }
 
-    // Check cache first
-    const hash = hashTranscript(rawTranscript)
-    const cached = getCachedAnalysis(hash)
+    if (!conversationType) {
+      router.replace('/classify')
+      return
+    }
+
+    // Check cache first (keyed by transcript + type)
+    const cacheKey = buildCacheKey(rawTranscript, conversationType)
+    const cached = getCachedAnalysis(cacheKey)
     if (cached) {
-      setState({ status: 'done', result: cached.result, speakers: cached.speakers, turns: cached.turns })
+      setState({
+        status: 'done',
+        result: cached.result,
+        speakers: cached.speakers,
+        turns: cached.turns,
+        conversationType,
+      })
       return
     }
 
     // Already have result from session (e.g. navigated back)
     const sessionResult = getSessionResult()
     if (sessionResult) {
-      setState({ status: 'done', result: sessionResult, speakers, turns })
+      setState({ status: 'done', result: sessionResult, speakers, turns, conversationType })
       return
     }
 
@@ -64,7 +79,7 @@ export default function ResultsPage() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ turns, speakers }),
+        body: JSON.stringify({ turns, speakers, conversation_type: conversationType }),
       })
 
       if (!res.ok) {
@@ -78,18 +93,26 @@ export default function ResultsPage() {
       // Persist
       setSessionResult(result)
       const primarySpeaker = speakers.find((s) => s.is_primary_user)
-      setCachedAnalysis({ hash, timestamp: new Date().toISOString(), speakers, turns, result })
+      setCachedAnalysis({
+        hash: cacheKey,
+        timestamp: new Date().toISOString(),
+        speakers,
+        turns,
+        result,
+        conversation_type: conversationType,
+      })
       addProgressRecord({
-        id: hash + Date.now(),
+        id: cacheKey + Date.now(),
         timestamp: new Date().toISOString(),
         speaker_name: primarySpeaker?.display_name ?? 'Unknown',
         total_score: result.total_score,
         dimension_scores: Object.fromEntries(
           result.dimensions.map((d) => [d.name, d.score])
         ),
+        conversation_type: conversationType,
       })
 
-      setState({ status: 'done', result, speakers, turns })
+      setState({ status: 'done', result, speakers, turns, conversationType })
     } catch {
       setState({ status: 'error', message: 'Something went wrong. Please try again.' })
     }
@@ -134,7 +157,7 @@ export default function ResultsPage() {
     )
   }
 
-  const { result, speakers, turns } = state
+  const { result, speakers, turns, conversationType } = state
   const primarySpeaker = speakers.find((s) => s.is_primary_user)
 
   return (
@@ -147,12 +170,20 @@ export default function ResultsPage() {
           >
             ← New transcript
           </button>
-          <button
-            onClick={() => router.push('/assign')}
-            className="text-sm text-neutral-400 hover:text-neutral-600"
-          >
-            Edit speakers
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/classify')}
+              className="text-sm text-neutral-400 hover:text-neutral-600"
+            >
+              Change type
+            </button>
+            <button
+              onClick={() => router.push('/assign')}
+              className="text-sm text-neutral-400 hover:text-neutral-600"
+            >
+              Edit speakers
+            </button>
+          </div>
         </div>
 
         <ScoreHeader
@@ -163,6 +194,7 @@ export default function ResultsPage() {
 
         <DimensionBreakdown
           dimensions={result.dimensions}
+          conversationType={conversationType}
           onViewMoments={(name) => {
             const moment = result.moments.find((m) =>
               m.label.toLowerCase().includes(name.toLowerCase().split(' ')[0])
